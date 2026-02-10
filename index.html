@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fitness Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+:root {
+  --bg-primary: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-card-hover: #222633;
+  --border: #2a2e3a;
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa0a6;
+  --text-muted: #5f6368;
+  --accent: #6c9fff;
+  --accent-secondary: #bb86fc;
+  --green: #34d399;
+  --orange: #fb923c;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  gap: 20px;
+}
+
+.spinner {
+  width: 48px; height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-screen p { color: var(--text-secondary); font-size: 14px; }
+
+.error-banner {
+  background: rgba(248,113,113,0.1);
+  border: 1px solid var(--red);
+  color: var(--red);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-stat {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.header-stat strong {
+  color: var(--text-primary);
+}
+
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(52,211,153,0.15);
+  color: var(--green);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  body { padding: 24px 32px; }
+  .grid { grid-template-columns: 1fr 1fr; }
+  .grid .full-width { grid-column: 1 / -1; }
+}
+
+@media (min-width: 1200px) {
+  body { padding: 32px 48px; max-width: 1400px; margin: 0 auto; }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  transition: background 0.2s;
+}
+
+.card:hover { background: var(--bg-card-hover); }
+
+.card h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.card .chart-container {
+  position: relative;
+  width: 100%;
+}
+
+.card select {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  width: 100%;
+  max-width: 320px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239aa0a6' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.card select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rec-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rec-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.rec-icon.warn { background: rgba(251,146,60,0.15); }
+.rec-icon.info { background: rgba(108,159,255,0.15); }
+.rec-icon.good { background: rgba(52,211,153,0.15); }
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .summary-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.summary-item {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+
+.summary-item .value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.summary-item .label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.no-data {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+/* Log Workout Form */
+.log-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 767px) {
+  .log-form-row { grid-template-columns: 1fr; }
+}
+
+.log-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.log-field input,
+.log-field select {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.log-field input:focus,
+.log-field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Fix date input color scheme for dark mode */
+.log-field input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+}
+
+.log-exercises {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.log-exercise-row {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 767px) {
+  .log-exercise-row {
+    grid-template-columns: 1fr auto;
+  }
+  .log-exercise-row label {
+    grid-column: 1 / -1;
+  }
+}
+
+.log-exercise-row label {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.log-exercise-row input {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+.log-exercise-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.each-side-toggle {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.each-side-toggle.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(108,159,255,0.1);
+}
+
+.log-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  min-height: 44px;
+}
+
+.log-btn:hover { opacity: 0.9; }
+.log-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.log-status {
+  margin-top: 12px;
+  font-size: 13px;
+  min-height: 20px;
+}
+
+.log-status.success { color: var(--green); }
+.log-status.error { color: var(--red); }
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-screen">
+  <div class="spinner"></div>
+  <p>Loading workout data...</p>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <h1>Fitness Dashboard</h1>
+    <div class="header-stats" id="header-stats"></div>
+  </header>
+
+  <div class="grid">
+    <div class="card full-width" id="log-card">
+      <h2>Log Workout</h2>
+      <form id="log-form">
+        <div class="log-form-row">
+          <div class="log-field">
+            <label for="log-type">Workout Type</label>
+            <select id="log-type"></select>
+          </div>
+          <div class="log-field">
+            <label for="log-date">Date</label>
+            <input type="date" id="log-date">
+          </div>
+          <div class="log-field">
+            <label for="log-bodyweight">Body Weight (kg)</label>
+            <input type="text" id="log-bodyweight" placeholder="e.g. 72.5">
+          </div>
+        </div>
+        <div id="log-exercises" class="log-exercises"></div>
+        <button type="submit" id="log-submit" class="log-btn">Log Workout</button>
+        <div id="log-status" class="log-status"></div>
+      </form>
+    </div>
+
+    <div class="card full-width" id="summary-card">
+      <h2>Overview</h2>
+      <div class="summary-grid" id="summary-grid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Body Weight</h2>
+      <div class="chart-container"><canvas id="weightChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>Workout Frequency (per week)</h2>
+      <div class="chart-container"><canvas id="frequencyChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>Muscle Group Balance</h2>
+      <div class="chart-container"><canvas id="muscleChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>Volume Over Time</h2>
+      <div class="chart-container"><canvas id="volumeChart"></canvas></div>
+    </div>
+
+    <div class="card full-width">
+      <h2>Exercise Progress</h2>
+      <select id="exercise-select"></select>
+      <div class="chart-container"><canvas id="exerciseChart"></canvas></div>
+    </div>
+
+    <div class="card full-width">
+      <h2>Training Recommendations</h2>
+      <div class="recommendations" id="recommendations"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const SHEET_ID = '1-90RuZhoTEBevAUqphehDaOtimhbIyPy63nRTEAwmlQ';
+const SHEETS = ['Workout 2025', 'Workout 2026'];
+
+// Apps Script web app URL — paste your deployment URL here
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw452wMFW4Otb7kGovuKhEUKJeD0MbYc6etQ_DxtOyqdhvENe9wu-d71BcDQbjaCIA4-Q/exec';
+
+// Workout types and their exercises (must match column A in the Google Sheet exactly)
+const WORKOUT_TYPES = {
+  'Chest + Tris Workout': [
+    'Dumbbell press',
+    'Dumbbell incline',
+    'Cable press',
+    'Tri Pushdown (Cable)',
+    'Lat Raises',
+    'Dips',
+    'Steel tri bar',
+  ],
+  'Back & Biceps': [
+    'Hammer Curls',
+    'Cable curl straight bar',
+    'Seated Rows',
+    'Lat Pull Down',
+    'Lat Pull down (Close Grip)',
+    'Pull Ups',
+  ],
+};
+
+// ============================================================
+// MUSCLE GROUP MAPPING
+// ============================================================
+const MUSCLE_MAP = {
+  'dumbbell press': 'Chest',
+  'dumbbell incline': 'Chest',
+  'cable press': 'Chest',
+  'chest press': 'Chest',
+  'chest up': 'Chest',
+  'cable fly': 'Chest',
+  'fly': 'Chest',
+  'bench press': 'Chest',
+  'incline press': 'Chest',
+  'tri pushdown': 'Triceps',
+  'tri pull down rope': 'Triceps',
+  'tri on knees': 'Triceps',
+  'tricep': 'Triceps',
+  'skull crushers': 'Triceps',
+  'overhead tri': 'Triceps',
+  'steel tri bar': 'Triceps',
+  'dips': 'Chest',
+  'lat raises': 'Shoulders',
+  'lateral raises': 'Shoulders',
+  'shoulder press': 'Shoulders',
+  'ohp': 'Shoulders',
+  'face pulls': 'Shoulders',
+  'leg press': 'Legs',
+  'lunges': 'Legs',
+  'calf raises': 'Legs',
+  'squats': 'Legs',
+  'squat': 'Legs',
+  'leg curl': 'Legs',
+  'leg extension': 'Legs',
+  'hamstring': 'Legs',
+  'rdl': 'Legs',
+  'deadlift': 'Legs',
+  'hip thrust': 'Legs',
+  'seated rows': 'Back',
+  'seated row': 'Back',
+  'lat pull down': 'Back',
+  'lat pulldown': 'Back',
+  'lay pull down': 'Back',
+  'pull ups': 'Back',
+  'pull-ups': 'Back',
+  'chin ups': 'Back',
+  'rows': 'Back',
+  'barbell row': 'Back',
+  'cable row': 'Back',
+  't-bar row': 'Back',
+  'back extension': 'Back',
+  'bar to chest': 'Back',
+  'knee up core': 'Core',
+  'knee up': 'Core',
+  'knee raises': 'Core',
+  'core': 'Core',
+  'abs': 'Core',
+  'plank': 'Core',
+  'elbow plank': 'Core',
+  'side arm plank': 'Core',
+  'bicycle': 'Core',
+  'superman': 'Core',
+  'bicep curl': 'Biceps',
+  'curls': 'Biceps',
+  'hammer curl': 'Biceps',
+  'preacher curl': 'Biceps',
+  'cable curl': 'Biceps',
+};
+
+function classifyExercise(name) {
+  const lower = name.toLowerCase().trim();
+  // Exact match first
+  if (MUSCLE_MAP[lower]) return MUSCLE_MAP[lower];
+  // Partial match — check if exercise name contains a key or key contains exercise name
+  for (const [key, group] of Object.entries(MUSCLE_MAP)) {
+    if (lower.includes(key) || key.includes(lower)) return group;
+  }
+  return 'Other';
+}
+
+// ============================================================
+// DATE PARSER — handles all the wild formats in the sheet
+// ============================================================
+const MONTHS = {
+  january:0,february:1,march:2,april:3,may:4,june:5,
+  july:6,august:7,september:8,october:9,november:10,december:11,
+  jan:0,feb:1,mar:2,apr:3,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11
+};
+
+function parseDate(str) {
+  if (!str) return null;
+  // Strip day names and "the" prefix: "Wednesday the 05/02/2020" → "05/02/2020"
+  let s = str.trim()
+    .replace(/^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*/i, '')
+    .replace(/^the\s+/i, '')
+    .trim();
+  if (!s) return null;
+
+  let m;
+
+  // "8 November 2025" or "4 January 2026" — D(D) Month YYYY
+  m = s.match(/^(\d{1,2})\s+([a-z]+)\s+(\d{4})$/i);
+  if (m) {
+    const mon = MONTHS[m[2].toLowerCase()];
+    if (mon !== undefined) return new Date(+m[3], mon, +m[1]);
+  }
+
+  // "November 2025" — Month YYYY (no day, skip)
+
+  // DD/MM/YYYY or DD/MM/YY
+  m = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+  if (m) {
+    let year = +m[3];
+    if (year < 100) year += 2000;
+    // Assume DD/MM/YYYY (Ben is Australian)
+    return new Date(year, +m[2] - 1, +m[1]);
+  }
+
+  // DD/MM (no year) — e.g. "26/3"
+  m = s.match(/^(\d{1,2})[/\-.](\d{1,2})$/);
+  if (m) {
+    // No year — we'll need context. Default to 2025 as a heuristic for the "Chest + Tris" sheet
+    // But actually these appear in a sheet context, so we'll handle fallback year outside
+    return new Date(2025, +m[2] - 1, +m[1]);
+  }
+
+  // YYYY-MM-DD
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+
+  // Try native Date parsing as last resort (handles "Saturday 8 November 2025" etc.)
+  const d = new Date(str.trim());
+  if (!isNaN(d.getTime()) && d.getFullYear() > 2000) return d;
+
+  return null;
+}
+
+// ============================================================
+// PARSER — handles free-text workout notation
+// ============================================================
+function parseWorkoutCell(text) {
+  if (!text || typeof text !== 'string') return [];
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  // Skip non-data values
+  if (/^(n\/a|—|–|-|not yet|did not do|rest|off|x|free weight|\d+r|\d+\s*minute|\d+\s*seconds?)$/i.test(trimmed)) return [];
+  // Skip URLs and notes
+  if (trimmed.startsWith('http') || trimmed.startsWith('NOTE')) return [];
+
+  const results = [];
+  // Split on comma or "&" for compound entries
+  // "2s of 12r @ 10kg, 1s of 12r @ 12.5kg"
+  // "1s of 8r @ 17.5kgs each side & 2s of 8r @ 15kgs each side."
+  const segments = trimmed.split(/,\s*|\s*&\s*/);
+
+  for (const seg of segments) {
+    const parsed = parseSegment(seg.trim());
+    if (parsed) results.push(parsed);
+  }
+  return results;
+}
+
+function parseSegment(text) {
+  if (!text) return null;
+
+  // Strip trailing notes: exercise name echoes, "each side", "on machine", parens, periods
+  let clean = text
+    .replace(/\s*(dumbbell press|dumbbell incline|cable press).*$/i, '')
+    .replace(/\.\s*$/, '')
+    .trim();
+
+  let m;
+
+  // Primary pattern: "3s of 10r @ 12kgs" or "3s of 12r @ 12.5kg"
+  // Also handles trailing notes like "each side", "(+Bar)", "on machine (÷2)"
+  m = clean.match(/(\d+)\s*s\s+of\s+(\d+)\s*r\s*@\s*([\d.]+)\s*(?:kgs?|lbs?|pounds?)?/i);
+  if (m) return { sets: +m[1], reps: +m[2], weight: +m[3] };
+
+  // Reversed pattern: "1s 12.5kgs, 2s of 10kgs @ 12r" or "3s of 7.9kgs @ 12r"
+  m = clean.match(/(\d+)\s*s\s+(?:of\s+)?([\d.]+)\s*(?:kgs?|lbs?)\s*@\s*(\d+)\s*r/i);
+  if (m) return { sets: +m[1], reps: +m[3], weight: +m[2] };
+
+  // Reversed: "2s of 12.5kgs of 8r" — seen in the data
+  m = clean.match(/(\d+)\s*s\s+(?:of\s+)?([\d.]+)\s*(?:kgs?|lbs?)\s+(?:of\s+)?(\d+)\s*r/i);
+  if (m) return { sets: +m[1], reps: +m[3], weight: +m[2] };
+
+  // Pattern without "of": "1s 12.5kgs" — weight only, assume context reps
+  m = clean.match(/^(\d+)\s*s\s+([\d.]+)\s*(?:kgs?|lbs?)$/i);
+  if (m) return { sets: +m[1], reps: 8, weight: +m[2] };
+
+  // "3s of 12r @ smith machine + 10kgs each side" — extract the kg number
+  m = clean.match(/(\d+)\s*s\s+of\s+(\d+)\s*r\s*@\s*.*?([\d.]+)\s*(?:kgs?|lbs?)/i);
+  if (m) return { sets: +m[1], reps: +m[2], weight: +m[3] };
+
+  // "3x10 @ 12kg" or "3x10@12"
+  m = clean.match(/(\d+)\s*[x×]\s*(\d+)\s*@\s*([\d.]+)\s*(?:kgs?|lbs?)?/i);
+  if (m) return { sets: +m[1], reps: +m[2], weight: +m[3] };
+
+  // Just sets and reps with @ but no unit number recognized — "3s of 12r @ 50 plates"
+  m = clean.match(/(\d+)\s*s\s+of\s+(\d+)\s*r\s*@\s*([\d.]+)\s*(?:plate|plates)/i);
+  if (m) return { sets: +m[1], reps: +m[2], weight: +m[3] };
+
+  // Just sets and reps, no weight: "3s of 10r" or "4s of 15r"
+  m = clean.match(/(\d+)\s*s\s+of\s+(\d+)\s*r/i);
+  if (m) return { sets: +m[1], reps: +m[2], weight: 0 };
+
+  // "3x10" with no weight
+  m = clean.match(/(\d+)\s*[x×]\s*(\d+)/i);
+  if (m) return { sets: +m[1], reps: +m[2], weight: 0 };
+
+  // Single number reps only: "20r"
+  m = clean.match(/^(\d+)\s*r$/i);
+  if (m) return { sets: 1, reps: +m[1], weight: 0 };
+
+  return null;
+}
+
+// ============================================================
+// WEIGHT VALUE PARSER — "71.6kgs no shoes" → 71.6
+// ============================================================
+function parseWeightValue(text) {
+  if (!text) return null;
+  const m = text.match(/([\d.]+)\s*(?:kgs?|lbs?)?/i);
+  if (m) {
+    const v = parseFloat(m[1]);
+    if (!isNaN(v) && v > 30 && v < 200) return v; // reasonable body weight range
+  }
+  return null;
+}
+
+// ============================================================
+// CSV PARSER
+// ============================================================
+function parseCSVRows(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+  const len = text.length;
+
+  for (let i = 0; i < len; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cell += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        row.push(cell);
+        cell = '';
+      } else if (ch === '\r' || ch === '\n') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell);
+        cell = '';
+        if (row.some(c => c.trim() !== '')) rows.push(row);
+        row = [];
+      } else {
+        cell += ch;
+      }
+    }
+  }
+  // Last row
+  row.push(cell);
+  if (row.some(c => c.trim() !== '')) rows.push(row);
+
+  return rows;
+}
+
+// ============================================================
+// DATA FETCHER
+// ============================================================
+async function fetchSheet(sheetName) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch sheet "${sheetName}": ${res.status}`);
+  const text = await res.text();
+  return parseCSVRows(text);
+}
+
+// ============================================================
+// TRANSPOSE & NORMALIZE — handles multi-section sheets
+// ============================================================
+function isDateHeaderRow(row) {
+  // A row is a date header if:
+  // - cell 0 contains a workout type label (like "Chest + Tris Workout", "Back & Legs Workout", "Back & Biceps")
+  // - at least 2 of cells 1+ parse as dates
+  const label = (row[0] || '').trim().toLowerCase();
+  const isLabel = label.includes('workout') || label.includes('back & biceps') ||
+                  label.includes('back & legs') || label.includes('chest');
+  if (!isLabel) return false;
+
+  let dateCount = 0;
+  for (let c = 1; c < row.length && c < 15; c++) {
+    const v = (row[c] || '').trim();
+    if (v && parseDate(v)) dateCount++;
+  }
+  return dateCount >= 2;
+}
+
+function transposeSheet(csvRows, sheetName) {
+  if (!csvRows || csvRows.length === 0) return { workouts: [], weights: [] };
+
+  const workouts = [];
+  const weights = [];
+
+  // Find all section headers (rows that contain dates)
+  const sections = [];
+  for (let r = 0; r < csvRows.length; r++) {
+    if (isDateHeaderRow(csvRows[r])) {
+      sections.push(r);
+    }
+  }
+
+  // If no section headers found, skip this sheet
+  if (sections.length === 0) return { workouts: [], weights: [] };
+
+  // Process each section
+  for (let si = 0; si < sections.length; si++) {
+    const headerRowIdx = sections[si];
+    const nextSectionIdx = si + 1 < sections.length ? sections[si + 1] : csvRows.length;
+    const headerRow = csvRows[headerRowIdx];
+    const sectionLabel = (headerRow[0] || '').trim();
+
+    // Parse dates from this header row
+    const dates = [];
+    for (let c = 1; c < headerRow.length; c++) {
+      const raw = (headerRow[c] || '').trim();
+      if (!raw) continue;
+      // Skip "MOST RECENT" and similar
+      if (/most recent/i.test(raw)) continue;
+      const d = parseDate(raw);
+      if (d) dates.push({ col: c, date: d });
+    }
+
+    if (dates.length === 0) continue;
+
+    // Process exercise rows in this section
+    for (let r = headerRowIdx + 1; r < nextSectionIdx; r++) {
+      const row = csvRows[r];
+      const exerciseName = (row[0] || '').trim();
+      if (!exerciseName) continue;
+      // Skip meta rows
+      if (/^(note|http|abs.*circut|$)/i.test(exerciseName)) continue;
+
+      const isWeight = /^weight$/i.test(exerciseName);
+
+      for (const { col, date } of dates) {
+        const cellVal = (row[col] || '').trim();
+        if (!cellVal) continue;
+
+        if (isWeight) {
+          const w = parseWeightValue(cellVal);
+          if (w !== null) {
+            weights.push({ date, weight: w, sheetName });
+          }
+        } else {
+          const parsed = parseWorkoutCell(cellVal);
+          for (const p of parsed) {
+            workouts.push({
+              date,
+              exercise: exerciseName,
+              sets: p.sets,
+              reps: p.reps,
+              weight: p.weight,
+              sheetName,
+              sectionLabel,
+              muscleGroup: classifyExercise(exerciseName),
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return { workouts, weights };
+}
+
+// ============================================================
+// LOG WORKOUT FORM
+// ============================================================
+function initLogForm() {
+  const typeSelect = document.getElementById('log-type');
+  const dateInput = document.getElementById('log-date');
+  const exercisesDiv = document.getElementById('log-exercises');
+  const form = document.getElementById('log-form');
+  const statusDiv = document.getElementById('log-status');
+  const submitBtn = document.getElementById('log-submit');
+
+  // Default date to today
+  dateInput.value = new Date().toISOString().slice(0, 10);
+
+  // Populate workout type dropdown
+  for (const typeName of Object.keys(WORKOUT_TYPES)) {
+    const opt = document.createElement('option');
+    opt.value = typeName;
+    opt.textContent = typeName;
+    typeSelect.appendChild(opt);
+  }
+
+  // Render exercise inputs when type changes
+  function renderExercises() {
+    const exercises = WORKOUT_TYPES[typeSelect.value];
+    if (!exercises) return;
+    exercisesDiv.innerHTML = '';
+    for (const name of exercises) {
+      const row = document.createElement('div');
+      row.className = 'log-exercise-row';
+      row.innerHTML = `
+        <label>${name}</label>
+        <input type="text" data-exercise="${name}"
+               placeholder="e.g. 3s of 10r @ 12kgs">
+        <button type="button" class="each-side-toggle" title="Append 'each side'">ES</button>
+      `;
+      row.querySelector('.each-side-toggle').addEventListener('click', function() {
+        this.classList.toggle('active');
+      });
+      exercisesDiv.appendChild(row);
+    }
+  }
+
+  typeSelect.addEventListener('change', renderExercises);
+  renderExercises();
+
+  // Form submission
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+      statusDiv.textContent = 'Set APPS_SCRIPT_URL in the source code first (see Code.gs setup instructions).';
+      statusDiv.className = 'log-status error';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    statusDiv.textContent = 'Submitting...';
+    statusDiv.className = 'log-status';
+
+    const typeName = typeSelect.value;
+    const dateStr = dateInput.value;
+    const dateObj = new Date(dateStr + 'T00:00:00');
+
+    // Format date as "D Month YYYY" to match the sheet's convention
+    const formattedDate = dateObj.toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    const bodyWeight = document.getElementById('log-bodyweight').value.trim() || null;
+
+    // Collect exercise values
+    const exercises = [];
+    for (const input of exercisesDiv.querySelectorAll('input[data-exercise]')) {
+      let value = input.value.trim();
+      if (!value) continue;
+      const toggle = input.closest('.log-exercise-row').querySelector('.each-side-toggle');
+      if (toggle && toggle.classList.contains('active')) {
+        value += ' each side';
+      }
+      exercises.push({ name: input.dataset.exercise, value });
+    }
+
+    if (exercises.length === 0 && !bodyWeight) {
+      statusDiv.textContent = 'Fill in at least one exercise or body weight.';
+      statusDiv.className = 'log-status error';
+      submitBtn.disabled = false;
+      return;
+    }
+
+    const sheetTab = 'Workout ' + dateObj.getFullYear();
+
+    const payload = {
+      sheetTab,
+      sectionLabel: typeName,
+      date: formattedDate,
+      bodyWeight,
+      exercises,
+    };
+
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' }, // text/plain avoids CORS preflight
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json();
+      if (result.success) {
+        statusDiv.textContent = 'Workout logged successfully!';
+        statusDiv.className = 'log-status success';
+        // Clear inputs but keep type and date
+        exercisesDiv.querySelectorAll('input').forEach(i => i.value = '');
+        document.getElementById('log-bodyweight').value = '';
+        exercisesDiv.querySelectorAll('.each-side-toggle').forEach(t => t.classList.remove('active'));
+      } else {
+        throw new Error(result.error || 'Unknown error');
+      }
+    } catch (err) {
+      statusDiv.textContent = 'Error: ' + err.message;
+      statusDiv.className = 'log-status error';
+    }
+
+    submitBtn.disabled = false;
+  });
+}
+
+// ============================================================
+// MAIN
+// ============================================================
+let allWorkouts = [];
+let allWeights = [];
+let exerciseChart = null;
+
+async function main() {
+  const loadingEl = document.getElementById('loading');
+  const appEl = document.getElementById('app');
+
+  try {
+    const results = await Promise.all(SHEETS.map(async (name) => {
+      const csv = await fetchSheet(name);
+      return transposeSheet(csv, name);
+    }));
+
+    for (const r of results) {
+      allWorkouts.push(...r.workouts);
+      allWeights.push(...r.weights);
+    }
+
+    // Sort by date
+    allWorkouts.sort((a, b) => a.date - b.date);
+    allWeights.sort((a, b) => a.date - b.date);
+
+    if (allWorkouts.length === 0) {
+      loadingEl.innerHTML = '<div class="error-banner">No workout data found. Make sure the Google Sheet is published to the web (File → Share → Publish to web).</div>';
+      return;
+    }
+
+    loadingEl.style.display = 'none';
+    appEl.style.display = 'block';
+
+    initLogForm();
+    renderHeader();
+    renderSummary();
+    renderWeightChart();
+    renderFrequencyChart();
+    renderMuscleChart();
+    renderVolumeChart();
+    renderExerciseProgress();
+    renderRecommendations();
+
+  } catch (err) {
+    console.error(err);
+    loadingEl.innerHTML = `<div class="error-banner">Error loading data: ${err.message}<br><br>Make sure the sheet is published to web and the sheet ID is correct.</div>`;
+  }
+}
+
+// ============================================================
+// HEADER
+// ============================================================
+function renderHeader() {
+  const el = document.getElementById('header-stats');
+  const uniqueDates = [...new Set(allWorkouts.map(w => w.date.toDateString()))].sort();
+  const lastDate = allWorkouts[allWorkouts.length - 1].date;
+  const daysSinceLast = Math.floor((new Date() - lastDate) / 86400000);
+
+  // Calculate streak (consecutive weeks with at least 1 workout, going back from most recent)
+  const weekSet = new Set();
+  for (const w of allWorkouts) {
+    const d = new Date(w.date);
+    const weekStart = new Date(d);
+    weekStart.setDate(d.getDate() - d.getDay());
+    weekSet.add(weekStart.toDateString());
+  }
+
+  let streak = 0;
+  const now = new Date();
+  const checkWeek = new Date(now);
+  checkWeek.setDate(now.getDate() - now.getDay());
+  for (let i = 0; i < 200; i++) {
+    if (weekSet.has(checkWeek.toDateString())) {
+      streak++;
+      checkWeek.setDate(checkWeek.getDate() - 7);
+    } else {
+      break;
+    }
+  }
+
+  const fmt = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  el.innerHTML = `
+    <span class="header-stat">Last workout: <strong>${fmt(lastDate)}</strong> (${daysSinceLast === 0 ? 'today' : daysSinceLast + 'd ago'})</span>
+    <span class="header-stat">Total sessions: <strong>${uniqueDates.length}</strong></span>
+    ${streak > 1 ? `<span class="streak-badge">${streak} week streak</span>` : ''}
+  `;
+}
+
+// ============================================================
+// SUMMARY CARDS
+// ============================================================
+function renderSummary() {
+  const el = document.getElementById('summary-grid');
+  const uniqueDates = [...new Set(allWorkouts.map(w => w.date.toDateString()))];
+  const exercises = [...new Set(allWorkouts.map(w => w.exercise))];
+
+  // Total volume
+  const totalVolume = allWorkouts.reduce((sum, w) => sum + w.sets * w.reps * w.weight, 0);
+
+  // Latest weight
+  const latestWeight = allWeights.length > 0 ? allWeights[allWeights.length - 1].weight : null;
+
+  el.innerHTML = `
+    <div class="summary-item">
+      <div class="value">${uniqueDates.length}</div>
+      <div class="label">Workouts</div>
+    </div>
+    <div class="summary-item">
+      <div class="value">${exercises.length}</div>
+      <div class="label">Exercises</div>
+    </div>
+    <div class="summary-item">
+      <div class="value">${formatVolume(totalVolume)}</div>
+      <div class="label">Total Volume (kg)</div>
+    </div>
+    <div class="summary-item">
+      <div class="value">${latestWeight ? latestWeight + 'kg' : '—'}</div>
+      <div class="label">Body Weight</div>
+    </div>
+  `;
+}
+
+function formatVolume(v) {
+  if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
+  if (v >= 1000) return (v / 1000).toFixed(0) + 'k';
+  return v.toFixed(0);
+}
+
+// ============================================================
+// CHART DEFAULTS
+// ============================================================
+const chartColors = {
+  accent: '#6c9fff',
+  accentBg: 'rgba(108,159,255,0.15)',
+  secondary: '#bb86fc',
+  secondaryBg: 'rgba(187,134,252,0.15)',
+  green: '#34d399',
+  greenBg: 'rgba(52,211,153,0.15)',
+  orange: '#fb923c',
+  orangeBg: 'rgba(251,146,60,0.15)',
+  red: '#f87171',
+  yellow: '#fbbf24',
+  grid: 'rgba(255,255,255,0.06)',
+  gridLabel: '#5f6368',
+};
+
+Chart.defaults.color = chartColors.gridLabel;
+Chart.defaults.borderColor = chartColors.grid;
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+Chart.defaults.plugins.legend.labels.boxWidth = 12;
+Chart.defaults.plugins.legend.labels.padding = 16;
+Chart.defaults.animation.duration = 600;
+
+// ============================================================
+// BODY WEIGHT CHART
+// ============================================================
+function renderWeightChart() {
+  const ctx = document.getElementById('weightChart').getContext('2d');
+
+  if (allWeights.length === 0) {
+    ctx.canvas.parentElement.innerHTML = '<p class="no-data">No body weight data found</p>';
+    return;
+  }
+
+  // Deduplicate by date (keep last entry per date)
+  const byDate = new Map();
+  for (const w of allWeights) {
+    byDate.set(w.date.toDateString(), w);
+  }
+  const data = [...byDate.values()].sort((a, b) => a.date - b.date);
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.date),
+      datasets: [{
+        label: 'Weight (kg)',
+        data: data.map(d => d.weight),
+        borderColor: chartColors.accent,
+        backgroundColor: chartColors.accentBg,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 768 ? 1.4 : 2,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'month', tooltipFormat: 'dd MMM yyyy' },
+          grid: { display: false },
+        },
+        y: {
+          beginAtZero: false,
+          grid: { color: chartColors.grid },
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// WORKOUT FREQUENCY CHART
+// ============================================================
+function renderFrequencyChart() {
+  const ctx = document.getElementById('frequencyChart').getContext('2d');
+
+  // Group workouts by ISO week
+  const weekMap = new Map();
+  for (const w of allWorkouts) {
+    const d = new Date(w.date);
+    const weekStart = new Date(d);
+    weekStart.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday start
+    weekStart.setHours(0, 0, 0, 0);
+    const key = weekStart.toISOString().slice(0, 10);
+    if (!weekMap.has(key)) weekMap.set(key, new Set());
+    weekMap.get(key).add(w.date.toDateString());
+  }
+
+  const weeks = [...weekMap.entries()]
+    .map(([key, dates]) => ({ date: new Date(key), count: dates.size }))
+    .sort((a, b) => a.date - b.date);
+
+  // Show only last 52 weeks for readability, or all if fewer
+  const displayWeeks = weeks.length > 52 ? weeks.slice(-52) : weeks;
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: displayWeeks.map(w => w.date),
+      datasets: [{
+        label: 'Sessions / week',
+        data: displayWeeks.map(w => w.count),
+        backgroundColor: displayWeeks.map(w =>
+          w.count >= 3 ? chartColors.green :
+          w.count >= 2 ? chartColors.accent :
+          w.count >= 1 ? chartColors.orange :
+          chartColors.red
+        ),
+        borderRadius: 3,
+        barPercentage: 0.85,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 768 ? 1.4 : 2,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'month', tooltipFormat: 'dd MMM yyyy' },
+          grid: { display: false },
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1 },
+          grid: { color: chartColors.grid },
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// MUSCLE GROUP BALANCE — Radar chart
+// ============================================================
+function renderMuscleChart() {
+  const ctx = document.getElementById('muscleChart').getContext('2d');
+
+  const groupVolume = {};
+  for (const w of allWorkouts) {
+    const g = w.muscleGroup;
+    if (g === 'Other') continue;
+    groupVolume[g] = (groupVolume[g] || 0) + w.sets * w.reps;
+  }
+
+  const labels = Object.keys(groupVolume).sort();
+  const data = labels.map(l => groupVolume[l]);
+
+  if (labels.length === 0) {
+    ctx.canvas.parentElement.innerHTML = '<p class="no-data">No muscle group data</p>';
+    return;
+  }
+
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Total Sets × Reps',
+        data,
+        borderColor: chartColors.accent,
+        backgroundColor: chartColors.accentBg,
+        borderWidth: 2,
+        pointBackgroundColor: chartColors.accent,
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 768 ? 1 : 1.3,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          beginAtZero: true,
+          grid: { color: chartColors.grid },
+          angleLines: { color: chartColors.grid },
+          pointLabels: { color: chartColors.gridLabel, font: { size: 12 } },
+          ticks: { display: false },
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// VOLUME OVER TIME
+// ============================================================
+function renderVolumeChart() {
+  const ctx = document.getElementById('volumeChart').getContext('2d');
+
+  // Group by date
+  const dateVol = new Map();
+  for (const w of allWorkouts) {
+    const key = w.date.toDateString();
+    dateVol.set(key, (dateVol.get(key) || 0) + w.sets * w.reps * w.weight);
+  }
+
+  const data = [...dateVol.entries()]
+    .map(([key, vol]) => ({ date: new Date(key), vol }))
+    .filter(d => d.vol > 0)
+    .sort((a, b) => a.date - b.date);
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.date),
+      datasets: [{
+        label: 'Volume (kg)',
+        data: data.map(d => d.vol),
+        borderColor: chartColors.secondary,
+        backgroundColor: chartColors.secondaryBg,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 1.5,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 768 ? 1.4 : 2,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'month', tooltipFormat: 'dd MMM yyyy' },
+          grid: { display: false },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: chartColors.grid },
+          ticks: {
+            callback: v => formatVolume(v),
+          }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// EXERCISE PROGRESS
+// ============================================================
+function renderExerciseProgress() {
+  const select = document.getElementById('exercise-select');
+  const ctx = document.getElementById('exerciseChart').getContext('2d');
+
+  // Group exercises by muscle group
+  const exercisesByGroup = {};
+  for (const w of allWorkouts) {
+    const group = w.muscleGroup || 'Other';
+    if (!exercisesByGroup[group]) exercisesByGroup[group] = new Set();
+    exercisesByGroup[group].add(w.exercise);
+  }
+
+  // Sort groups in a logical order, then alphabetically within each
+  const groupOrder = ['Chest', 'Triceps', 'Shoulders', 'Back', 'Biceps', 'Legs', 'Core', 'Other'];
+  const sortedGroups = Object.keys(exercisesByGroup).sort((a, b) => {
+    const ai = groupOrder.indexOf(a), bi = groupOrder.indexOf(b);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+  const exercises = [];
+  for (const group of sortedGroups) {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = group;
+    const sorted = [...exercisesByGroup[group]].sort();
+    for (const ex of sorted) {
+      exercises.push(ex);
+      const opt = document.createElement('option');
+      opt.value = ex;
+      opt.textContent = ex;
+      optgroup.appendChild(opt);
+    }
+    select.appendChild(optgroup);
+  }
+
+  function renderChart(exerciseName) {
+    const entries = allWorkouts.filter(w => w.exercise === exerciseName && w.weight > 0);
+
+    // Group by date — take max weight per date
+    const byDate = new Map();
+    for (const e of entries) {
+      const key = e.date.toDateString();
+      const existing = byDate.get(key);
+      if (!existing || e.weight > existing.weight) {
+        byDate.set(key, e);
+      }
+    }
+
+    const data = [...byDate.values()].sort((a, b) => a.date - b.date);
+
+    if (exerciseChart) exerciseChart.destroy();
+
+    if (data.length === 0) {
+      exerciseChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ data: [] }] },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+      return;
+    }
+
+    exerciseChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(d => d.date),
+        datasets: [{
+          label: exerciseName + ' (kg)',
+          data: data.map(d => d.weight),
+          borderColor: chartColors.green,
+          backgroundColor: chartColors.greenBg,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 7,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: window.innerWidth < 768 ? 1.4 : 2.5,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            type: 'time',
+            time: { unit: 'month', tooltipFormat: 'dd MMM yyyy' },
+            grid: { display: false },
+          },
+          y: {
+            beginAtZero: false,
+            grid: { color: chartColors.grid },
+            title: { display: true, text: 'Weight (kg)', color: chartColors.gridLabel },
+          }
+        }
+      }
+    });
+  }
+
+  if (exercises.length > 0) renderChart(exercises[0]);
+  select.addEventListener('change', () => renderChart(select.value));
+}
+
+// ============================================================
+// TRAINING RECOMMENDATIONS
+// ============================================================
+function renderRecommendations() {
+  const el = document.getElementById('recommendations');
+  const recs = [];
+
+  // 1. Days since each workout type (by section label, e.g. "Chest + Tris Workout", "Back & Biceps")
+  const typeLastDate = {};
+  for (const w of allWorkouts) {
+    const key = (w.sectionLabel || w.sheetName || '').replace(/\s*workout\s*/i, '').trim();
+    if (!key) continue;
+    if (!typeLastDate[key] || w.date > typeLastDate[key]) {
+      typeLastDate[key] = w.date;
+    }
+  }
+
+  const now = new Date();
+  let suggestType = null;
+  let maxDays = 0;
+  for (const [type, date] of Object.entries(typeLastDate)) {
+    const days = Math.floor((now - date) / 86400000);
+    if (days > maxDays) {
+      maxDays = days;
+      suggestType = type;
+    }
+  }
+
+  if (suggestType && maxDays > 3) {
+    recs.push({
+      icon: 'warn',
+      text: `It's been <strong>${maxDays} days</strong> since your last <strong>${suggestType}</strong> session. Consider training that next.`,
+    });
+  }
+
+  // 2. Muscle group imbalance
+  const groupSets = {};
+  // Only look at last 30 days for recent balance
+  const thirtyDaysAgo = new Date(now - 30 * 86400000);
+  for (const w of allWorkouts) {
+    if (w.date < thirtyDaysAgo) continue;
+    const g = w.muscleGroup;
+    if (g === 'Other') continue;
+    groupSets[g] = (groupSets[g] || 0) + w.sets;
+  }
+
+  const groups = Object.entries(groupSets).sort((a, b) => a[1] - b[1]);
+  if (groups.length >= 2) {
+    const least = groups[0];
+    const most = groups[groups.length - 1];
+    if (most[1] > 0 && least[1] / most[1] < 0.4) {
+      recs.push({
+        icon: 'info',
+        text: `<strong>${least[0]}</strong> is undertrained recently (${least[1]} sets) compared to <strong>${most[0]}</strong> (${most[1]} sets). Try adding more ${least[0].toLowerCase()} work.`,
+      });
+    }
+  }
+
+  // 3. Consistency check
+  const fourWeeksAgo = new Date(now - 28 * 86400000);
+  const recentDates = new Set(
+    allWorkouts.filter(w => w.date >= fourWeeksAgo).map(w => w.date.toDateString())
+  );
+  const weeklyAvg = recentDates.size / 4;
+  if (weeklyAvg < 2) {
+    recs.push({
+      icon: 'warn',
+      text: `You've averaged <strong>${weeklyAvg.toFixed(1)} sessions/week</strong> over the last 4 weeks. Try to aim for at least 2-3 sessions per week.`,
+    });
+  } else if (weeklyAvg >= 3) {
+    recs.push({
+      icon: 'good',
+      text: `Great consistency! <strong>${weeklyAvg.toFixed(1)} sessions/week</strong> over the last 4 weeks.`,
+    });
+  }
+
+  // 4. PR check — find exercises where most recent session matched or exceeded all-time max
+  const exerciseMax = {};
+  const exerciseRecent = {};
+  for (const w of allWorkouts) {
+    if (w.weight <= 0) continue;
+    if (!exerciseMax[w.exercise] || w.weight > exerciseMax[w.exercise]) {
+      exerciseMax[w.exercise] = w.weight;
+    }
+  }
+  const sevenDaysAgo = new Date(now - 7 * 86400000);
+  for (const w of allWorkouts) {
+    if (w.date < sevenDaysAgo || w.weight <= 0) continue;
+    if (!exerciseRecent[w.exercise] || w.weight > exerciseRecent[w.exercise]) {
+      exerciseRecent[w.exercise] = w.weight;
+    }
+  }
+  const prs = [];
+  for (const [ex, maxW] of Object.entries(exerciseRecent)) {
+    if (maxW >= exerciseMax[ex]) prs.push(ex);
+  }
+  if (prs.length > 0) {
+    recs.push({
+      icon: 'good',
+      text: `Recent PRs: <strong>${prs.slice(0, 3).join(', ')}</strong>${prs.length > 3 ? ` and ${prs.length - 3} more` : ''}!`,
+    });
+  }
+
+  // 5. If no recommendations, add a default
+  if (recs.length === 0) {
+    recs.push({
+      icon: 'info',
+      text: 'Keep up the good work! No specific recommendations right now.',
+    });
+  }
+
+  el.innerHTML = recs.map(r => `
+    <div class="rec-item">
+      <div class="rec-icon ${r.icon}">${r.icon === 'warn' ? '!' : r.icon === 'good' ? '\u2713' : 'i'}</div>
+      <div>${r.text}</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+main();
+</script>
+</body>
+</html>
