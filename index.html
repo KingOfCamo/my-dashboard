@@ -4,36 +4,45 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fitness Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <style>
 :root {
-  --bg-primary: #0f1117;
-  --bg-card: #1a1d27;
-  --bg-card-hover: #222633;
-  --border: #2a2e3a;
+  --bg-primary: #0a0c10;
+  --bg-card: rgba(22, 25, 35, 0.7);
+  --bg-card-hover: rgba(30, 34, 48, 0.85);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(108, 159, 255, 0.3);
   --text-primary: #e8eaed;
   --text-secondary: #9aa0a6;
   --text-muted: #5f6368;
   --accent: #6c9fff;
   --accent-secondary: #bb86fc;
+  --accent-glow: rgba(108, 159, 255, 0.15);
   --green: #34d399;
   --orange: #fb923c;
   --red: #f87171;
   --yellow: #fbbf24;
-  --radius: 12px;
-  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --radius: 16px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  --shadow-glow: 0 0 40px rgba(108, 159, 255, 0.08);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
   padding: 16px;
   -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(108, 159, 255, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(187, 134, 252, 0.06), transparent);
 }
 
 .loading-screen {
@@ -47,15 +56,17 @@ body {
 
 .spinner {
   width: 48px; height: 48px;
-  border: 4px solid var(--border);
+  border: 3px solid transparent;
   border-top-color: var(--accent);
+  border-right-color: var(--accent-secondary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  box-shadow: 0 0 20px rgba(108, 159, 255, 0.15);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.loading-screen p { color: var(--text-secondary); font-size: 14px; }
+.loading-screen p { color: var(--text-secondary); font-size: 14px; letter-spacing: 0.3px; }
 
 .error-banner {
   background: rgba(248,113,113,0.1);
@@ -68,19 +79,27 @@ body {
 }
 
 header {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
 }
 
 header h1 {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary), var(--accent));
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 200% center; }
 }
 
 .header-stats {
@@ -102,12 +121,19 @@ header h1 {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(52,211,153,0.15);
+  background: rgba(52,211,153,0.12);
   color: var(--green);
-  padding: 2px 8px;
+  padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  border: 1px solid rgba(52,211,153,0.2);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0.15); }
+  50% { box-shadow: 0 0 12px 4px rgba(52,211,153,0.1); }
 }
 
 .grid {
@@ -130,19 +156,42 @@ header h1 {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 22px;
   box-shadow: var(--shadow);
-  transition: background 0.2s;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  transform: translateY(16px);
+  animation: cardEntry 0.5s ease-out forwards;
 }
 
-.card:hover { background: var(--bg-card-hover); }
+.card:nth-child(1) { animation-delay: 0s; }
+.card:nth-child(2) { animation-delay: 0.06s; }
+.card:nth-child(3) { animation-delay: 0.12s; }
+.card:nth-child(4) { animation-delay: 0.18s; }
+.card:nth-child(5) { animation-delay: 0.24s; }
+.card:nth-child(6) { animation-delay: 0.3s; }
+.card:nth-child(7) { animation-delay: 0.36s; }
+.card:nth-child(8) { animation-delay: 0.42s; }
+
+@keyframes cardEntry {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow), var(--shadow-glow);
+  transform: translateY(-2px);
+}
 
 .card h2 {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   margin-bottom: 16px;
 }
 
@@ -152,10 +201,10 @@ header h1 {
 }
 
 .card select {
-  background: var(--bg-primary);
+  background: rgba(15, 17, 23, 0.6);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 8px 12px;
   font-size: 14px;
   margin-bottom: 12px;
@@ -167,11 +216,13 @@ header h1 {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239aa0a6' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
+  transition: all 0.25s ease;
 }
 
 .card select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 159, 255, 0.1);
 }
 
 .recommendations {
@@ -183,28 +234,36 @@ header h1 {
 .rec-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--bg-primary);
-  border-radius: 8px;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(15, 17, 23, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
+  transition: all 0.25s ease;
+}
+
+.rec-item:hover {
+  border-color: var(--border-hover);
+  background: rgba(108, 159, 255, 0.03);
 }
 
 .rec-icon {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
+  font-weight: 700;
 }
 
-.rec-icon.warn { background: rgba(251,146,60,0.15); }
-.rec-icon.info { background: rgba(108,159,255,0.15); }
-.rec-icon.good { background: rgba(52,211,153,0.15); }
+.rec-icon.warn { background: rgba(251,146,60,0.15); color: var(--orange); }
+.rec-icon.info { background: rgba(108,159,255,0.15); color: var(--accent); }
+.rec-icon.good { background: rgba(52,211,153,0.15); color: var(--green); }
 
 .summary-grid {
   display: grid;
@@ -217,25 +276,38 @@ header h1 {
 }
 
 .summary-item {
-  background: var(--bg-primary);
-  border-radius: 8px;
-  padding: 14px;
+  background: rgba(15, 17, 23, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 14px;
   text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
+}
+
+.summary-item:hover {
+  border-color: var(--border-hover);
+  background: rgba(108, 159, 255, 0.05);
+  transform: scale(1.03);
 }
 
 .summary-item .value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--accent);
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   line-height: 1.2;
 }
 
 .summary-item .label {
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: 10px;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 4px;
+  letter-spacing: 0.8px;
+  margin-top: 6px;
+  font-weight: 600;
 }
 
 .no-data {
@@ -268,19 +340,21 @@ header h1 {
 
 .log-field input,
 .log-field select {
-  background: var(--bg-primary);
+  background: rgba(15, 17, 23, 0.6);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
   width: 100%;
+  transition: all 0.25s ease;
 }
 
 .log-field input:focus,
 .log-field select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 159, 255, 0.1);
 }
 
 /* Fix date input color scheme for dark mode */
@@ -317,19 +391,21 @@ header h1 {
 }
 
 .log-exercise-row input {
-  background: var(--bg-primary);
+  background: rgba(15, 17, 23, 0.6);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
   width: 100%;
   min-width: 0;
+  transition: all 0.25s ease;
 }
 
 .log-exercise-row input:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 159, 255, 0.1);
 }
 
 .each-side-toggle {
@@ -338,33 +414,51 @@ header h1 {
   cursor: pointer;
   padding: 6px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+}
+
+.each-side-toggle:hover {
+  border-color: rgba(108,159,255,0.3);
+  color: var(--text-secondary);
 }
 
 .each-side-toggle.active {
   color: var(--accent);
   border-color: var(--accent);
-  background: rgba(108,159,255,0.1);
+  background: rgba(108,159,255,0.12);
+  box-shadow: 0 0 12px rgba(108,159,255,0.15);
 }
 
 .log-btn {
   background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
   color: white;
   border: none;
-  border-radius: 8px;
-  padding: 12px 32px;
+  border-radius: 10px;
+  padding: 12px 36px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 44px;
+  box-shadow: 0 4px 15px rgba(108, 159, 255, 0.25);
+  letter-spacing: 0.3px;
 }
 
-.log-btn:hover { opacity: 0.9; }
-.log-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.log-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(108, 159, 255, 0.35);
+}
+
+.log-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(108, 159, 255, 0.2);
+}
+
+.log-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .log-status {
   margin-top: 12px;
@@ -374,6 +468,261 @@ header h1 {
 
 .log-status.success { color: var(--green); }
 .log-status.error { color: var(--red); }
+
+/* Collapsible Log Workout */
+.log-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.log-toggle-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(108, 159, 255, 0.1);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: transform 0.3s ease, background 0.2s;
+}
+
+.log-toggle:hover .log-toggle-icon {
+  background: rgba(108, 159, 255, 0.2);
+}
+
+.log-toggle-icon.open {
+  transform: rotate(180deg);
+}
+
+.log-form-wrapper {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  opacity: 0;
+}
+
+.log-form-wrapper.open {
+  max-height: 800px;
+  opacity: 1;
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* Focus ring for accessibility */
+select:focus, input:focus, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Exercise Technique Modal */
+.exercise-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.exercise-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.exercise-modal-content {
+  position: relative;
+  background: rgba(22, 25, 35, 0.95);
+  border: 1px solid rgba(108, 159, 255, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.6), 0 0 60px rgba(108, 159, 255, 0.06);
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 28px;
+  animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.exercise-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 28px;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
+}
+
+.exercise-modal-close:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.exercise-modal-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  padding-right: 36px;
+}
+
+.exercise-modal-muscle {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--accent);
+  background: rgba(108, 159, 255, 0.12);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.exercise-modal-video-container {
+  width: 100%;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+}
+
+.exercise-modal-video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.exercise-modal-video-container .exercise-modal-gif-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.exercise-modal-gif-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.exercise-modal-section {
+  margin-bottom: 16px;
+}
+
+.exercise-modal-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.exercise-modal-section p {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.exercise-modal-section ol,
+.exercise-modal-section ul {
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.exercise-modal-section ol li,
+.exercise-modal-section ul li {
+  margin-bottom: 4px;
+}
+
+.exercise-modal-section ul li {
+  color: var(--orange);
+}
+
+/* Clickable exercise name styling */
+.exercise-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--text-muted);
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+
+.exercise-link:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+/* Exercise info button next to dropdown */
+.exercise-info-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--accent);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.exercise-info-btn:hover {
+  background: rgba(108,159,255,0.1);
+}
+
+@media (max-width: 767px) {
+  .exercise-modal-content {
+    max-height: 90vh;
+    padding: 16px;
+  }
+  .exercise-modal-header h3 {
+    font-size: 18px;
+  }
+}
 </style>
 </head>
 <body>
@@ -391,8 +740,12 @@ header h1 {
 
   <div class="grid">
     <div class="card full-width" id="log-card">
-      <h2>Log Workout</h2>
-      <form id="log-form">
+      <div class="log-toggle" id="log-toggle">
+        <h2 style="margin-bottom:0">Log Workout</h2>
+        <div class="log-toggle-icon" id="log-toggle-icon">&#9660;</div>
+      </div>
+      <div class="log-form-wrapper" id="log-form-wrapper">
+      <form id="log-form" style="padding-top:16px">
         <div class="log-form-row">
           <div class="log-field">
             <label for="log-type">Workout Type</label>
@@ -411,11 +764,26 @@ header h1 {
         <button type="submit" id="log-submit" class="log-btn">Log Workout</button>
         <div id="log-status" class="log-status"></div>
       </form>
+      </div>
     </div>
 
     <div class="card full-width" id="summary-card">
       <h2>Overview</h2>
       <div class="summary-grid" id="summary-grid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Exercise Progress</h2>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+        <select id="exercise-select"></select>
+        <button id="exercise-info-btn" class="exercise-info-btn" title="View technique">&#9432;</button>
+      </div>
+      <div class="chart-container"><canvas id="exerciseChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>Muscle Group Balance</h2>
+      <div class="chart-container"><canvas id="muscleChart"></canvas></div>
     </div>
 
     <div class="card">
@@ -428,25 +796,48 @@ header h1 {
       <div class="chart-container"><canvas id="frequencyChart"></canvas></div>
     </div>
 
-    <div class="card">
-      <h2>Muscle Group Balance</h2>
-      <div class="chart-container"><canvas id="muscleChart"></canvas></div>
-    </div>
-
-    <div class="card">
-      <h2>Volume Over Time</h2>
-      <div class="chart-container"><canvas id="volumeChart"></canvas></div>
-    </div>
-
-    <div class="card full-width">
-      <h2>Exercise Progress</h2>
-      <select id="exercise-select"></select>
-      <div class="chart-container"><canvas id="exerciseChart"></canvas></div>
-    </div>
-
     <div class="card full-width">
       <h2>Training Recommendations</h2>
       <div class="recommendations" id="recommendations"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Exercise Technique Modal -->
+<div id="exercise-modal" class="exercise-modal" style="display:none" role="dialog" aria-modal="true">
+  <div class="exercise-modal-backdrop"></div>
+  <div class="exercise-modal-content">
+    <button class="exercise-modal-close" aria-label="Close">&times;</button>
+    <div class="exercise-modal-header">
+      <h3 id="exercise-modal-title"></h3>
+      <span class="exercise-modal-muscle" id="exercise-modal-muscle"></span>
+    </div>
+    <div class="exercise-modal-body">
+      <div class="exercise-modal-video-container" id="exercise-modal-video-container">
+        <iframe id="exercise-modal-video" src="" frameborder="0" allowfullscreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+        <div id="exercise-modal-video-placeholder" class="exercise-modal-gif-placeholder">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="5" r="3"/>
+            <path d="M12 8v8M8 12h8M9 20l3-4 3 4"/>
+          </svg>
+          <span>Video not available</span>
+        </div>
+      </div>
+      <div class="exercise-modal-details">
+        <div class="exercise-modal-section">
+          <h4>Equipment</h4>
+          <p id="exercise-modal-equipment"></p>
+        </div>
+        <div class="exercise-modal-section">
+          <h4>Technique Cues</h4>
+          <ol id="exercise-modal-cues"></ol>
+        </div>
+        <div class="exercise-modal-section">
+          <h4>Common Mistakes</h4>
+          <ul id="exercise-modal-mistakes"></ul>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -549,6 +940,259 @@ const MUSCLE_MAP = {
   'preacher curl': 'Biceps',
   'cable curl': 'Biceps',
 };
+
+// ============================================================
+// EXERCISE TECHNIQUE REFERENCE
+// ============================================================
+const EXERCISE_REFERENCE = {
+  'dumbbell press': {
+    displayName: 'Dumbbell Press',
+    videoId: 'dGqI0Z5ul4k',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Chest',
+    equipment: 'Dumbbells, Flat Bench',
+    cues: [
+      'Lie flat on bench with feet firmly on the floor',
+      'Hold dumbbells at chest level, palms facing forward',
+      'Press up in a slight arc, bringing dumbbells together at the top',
+      'Lower with control, elbows at roughly 45 degrees to torso',
+      'Keep shoulder blades retracted and squeezed together throughout',
+    ],
+    common_mistakes: [
+      'Flaring elbows to 90 degrees (increases shoulder impingement risk)',
+      'Bouncing the weight off the chest',
+      'Arching the lower back excessively',
+    ],
+  },
+  'dumbbell incline': {
+    displayName: 'Dumbbell Incline Press',
+    videoId: '8nNi8jbbUPE',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Chest (Upper)',
+    equipment: 'Dumbbells, Incline Bench (30-45 degrees)',
+    cues: [
+      'Set bench to 30-45 degree incline',
+      'Press dumbbells from chest level upward and slightly back',
+      'Keep wrists stacked over elbows throughout the movement',
+      'Lower until dumbbells are level with upper chest',
+      'Drive feet into the floor for stability',
+    ],
+    common_mistakes: [
+      'Setting incline too steep (turns it into a shoulder press)',
+      'Letting wrists roll backward',
+    ],
+  },
+  'cable press': {
+    displayName: 'Cable Press',
+    videoId: 'n4CEULDvATA',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Chest',
+    equipment: 'Cable Machine',
+    cues: [
+      'Set cables at chest height or slightly above',
+      'Step forward into a split stance for stability',
+      'Press handles forward and together in a hugging motion',
+      'Squeeze chest hard at the fully extended position',
+      'Return slowly, feeling the stretch across the chest',
+    ],
+    common_mistakes: [
+      'Using too much body momentum to press',
+      'Not controlling the eccentric (return) phase',
+    ],
+  },
+  'tri pushdown (cable)': {
+    displayName: 'Tricep Pushdown (Cable)',
+    videoId: 'mpZ9VRisAyw',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Triceps',
+    equipment: 'Cable Machine, Straight or V-Bar',
+    cues: [
+      'Stand tall with elbows pinned to your sides',
+      'Push the bar down by extending your elbows fully',
+      'Squeeze the triceps hard at the bottom',
+      'Return slowly, stopping when forearms are parallel to the floor',
+      'Keep your torso upright — do not lean over the bar',
+    ],
+    common_mistakes: [
+      'Letting elbows drift forward or flare out',
+      'Using shoulder momentum to push the weight down',
+    ],
+  },
+  'lat raises': {
+    displayName: 'Lateral Raises',
+    videoId: '3VcKaXpzqRo',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Shoulders (Side Delts)',
+    equipment: 'Dumbbells',
+    cues: [
+      'Stand with dumbbells at your sides, slight bend in elbows',
+      'Raise arms out to the sides until parallel with the floor',
+      'Lead with your elbows, not your hands',
+      'Slight forward lean and pour as if pouring water at the top',
+      'Lower with control — do not just drop the weight',
+    ],
+    common_mistakes: [
+      'Using momentum to swing the weight up',
+      'Shrugging the traps during the movement',
+      'Going too heavy and losing form',
+    ],
+  },
+  'dips': {
+    displayName: 'Dips',
+    videoId: 'FG1ENBFsdHU',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Chest / Triceps',
+    equipment: 'Dip Station or Parallel Bars',
+    cues: [
+      'Grip bars slightly wider than shoulder width',
+      'Lean torso slightly forward for chest emphasis',
+      'Lower until upper arms are parallel to the floor',
+      'Press up by extending elbows fully',
+      'Keep shoulders down and away from ears',
+    ],
+    common_mistakes: [
+      'Going too deep (excessive shoulder stress)',
+      'Staying too upright (shifts load entirely to triceps if chest is the target)',
+    ],
+  },
+  'steel tri bar': {
+    displayName: 'Steel Tri Bar (Tricep Extension)',
+    videoId: 'K6MSN4hCDM4',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Triceps',
+    equipment: 'Steel Tri Bar / EZ Curl Bar',
+    cues: [
+      'Grip the bar with a narrow, neutral or close grip',
+      'Keep elbows pointing forward and close together',
+      'Extend the bar overhead or forward by straightening the arms',
+      'Control the lowering phase, feeling the stretch in the triceps',
+      'Do not let elbows flare wide',
+    ],
+    common_mistakes: [
+      'Flaring elbows outward',
+      'Using back or shoulder momentum',
+    ],
+  },
+  'hammer curls': {
+    displayName: 'Hammer Curls',
+    videoId: 'TwD-YGVP4Bk',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Biceps / Brachioradialis',
+    equipment: 'Dumbbells',
+    cues: [
+      'Hold dumbbells with a neutral grip (palms facing each other)',
+      'Curl up while keeping palms facing inward the entire time',
+      'Squeeze at the top, keeping elbows stationary at your sides',
+      'Lower with control — no swinging',
+      'Can be done alternating or simultaneously',
+    ],
+    common_mistakes: [
+      'Swinging the body to generate momentum',
+      'Rotating the wrist during the curl (turns it into a regular curl)',
+    ],
+  },
+  'cable curl straight bar': {
+    displayName: 'Cable Curl (Straight Bar)',
+    videoId: 'NFzTWp2qpiE',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Biceps',
+    equipment: 'Cable Machine, Straight Bar Attachment',
+    cues: [
+      'Stand facing the cable with bar at low pulley',
+      'Grip bar shoulder width, palms facing up',
+      'Curl the bar up by flexing at the elbows only',
+      'Squeeze the biceps at the top',
+      'Lower slowly, maintaining tension throughout',
+    ],
+    common_mistakes: [
+      'Leaning back to lift the weight',
+      'Allowing elbows to drift forward',
+    ],
+  },
+  'seated rows': {
+    displayName: 'Seated Rows',
+    videoId: 'UCXxvVItLoM',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Back (Mid-Back, Lats)',
+    equipment: 'Cable Row Machine',
+    cues: [
+      'Sit upright with slight bend in knees, feet on platform',
+      'Pull the handle toward your lower chest / upper abdomen',
+      'Drive elbows straight back, squeezing shoulder blades together',
+      'Hold the contraction for a beat at the end of the pull',
+      'Return slowly, letting shoulders protract slightly for a stretch',
+    ],
+    common_mistakes: [
+      'Rounding the back during the pull',
+      'Using excessive body lean (rowing with momentum)',
+    ],
+  },
+  'lat pull down': {
+    displayName: 'Lat Pulldown',
+    videoId: 'iKrKgWR9wbY',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Back (Lats)',
+    equipment: 'Lat Pulldown Machine',
+    cues: [
+      'Grip the bar slightly wider than shoulder width',
+      'Lean back slightly and pull the bar to your upper chest',
+      'Drive elbows down and back, squeezing the lats',
+      'Control the bar back up, fully extending the arms',
+      'Keep chest up and avoid rounding forward',
+    ],
+    common_mistakes: [
+      'Pulling behind the neck (shoulder injury risk)',
+      'Leaning too far back (turns into a row)',
+      'Using grip/biceps instead of initiating with lats',
+    ],
+  },
+  'lat pull down (close grip)': {
+    displayName: 'Lat Pulldown (Close Grip)',
+    videoId: 'uAyrz5GTEHg',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Back (Lats, Lower Lats)',
+    equipment: 'Lat Pulldown Machine, V-Bar or Close Grip Handle',
+    cues: [
+      'Use a V-bar or narrow handle attachment',
+      'Pull down to chest level, elbows driving toward hips',
+      'Squeeze at the bottom, emphasizing the lower lat contraction',
+      'Return slowly with full arm extension at the top',
+      'Keep torso stable with a slight backward lean',
+    ],
+    common_mistakes: [
+      'Excessive body swing',
+      'Not achieving full range of motion at the top',
+    ],
+  },
+  'pull ups': {
+    displayName: 'Pull Ups',
+    videoId: 'poyr8KenUfc',
+    videoPlatform: 'youtube',
+    muscleGroup: 'Back (Lats, Upper Back)',
+    equipment: 'Pull Up Bar',
+    cues: [
+      'Hang with arms fully extended, palms facing away (overhand grip)',
+      'Pull up by driving elbows down toward your hips',
+      'Get chin above the bar at the top',
+      'Lower with control to a full dead hang',
+      'Avoid kipping or swinging for strict pull ups',
+    ],
+    common_mistakes: [
+      'Half-reps (not going to full extension at bottom)',
+      'Excessive kipping or swinging',
+      'Craning the neck to get chin over bar',
+    ],
+  },
+};
+
+function getExerciseReference(exerciseName) {
+  const lower = exerciseName.toLowerCase().trim();
+  if (EXERCISE_REFERENCE[lower]) return EXERCISE_REFERENCE[lower];
+  for (const [key, ref] of Object.entries(EXERCISE_REFERENCE)) {
+    if (lower.includes(key) || key.includes(lower)) return ref;
+  }
+  return null;
+}
 
 function classifyExercise(name) {
   const lower = name.toLowerCase().trim();
@@ -868,6 +1512,99 @@ function transposeSheet(csvRows, sheetName) {
 }
 
 // ============================================================
+// EXERCISE TECHNIQUE MODAL
+// ============================================================
+function getVideoEmbedUrl(videoId, platform) {
+  if (platform === 'vimeo') {
+    return `https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&quality_selector=1`;
+  }
+  return `https://www.youtube.com/embed/${videoId}?rel=0`;
+}
+
+function openExerciseModal(exerciseName) {
+  const ref = getExerciseReference(exerciseName);
+  const modal = document.getElementById('exercise-modal');
+  const title = document.getElementById('exercise-modal-title');
+  const muscle = document.getElementById('exercise-modal-muscle');
+  const video = document.getElementById('exercise-modal-video');
+  const placeholder = document.getElementById('exercise-modal-video-placeholder');
+  const equipment = document.getElementById('exercise-modal-equipment');
+  const cues = document.getElementById('exercise-modal-cues');
+  const mistakes = document.getElementById('exercise-modal-mistakes');
+
+  if (ref) {
+    title.textContent = ref.displayName;
+    muscle.textContent = ref.muscleGroup;
+    equipment.textContent = ref.equipment;
+    cues.innerHTML = ref.cues.map(c => `<li>${c}</li>`).join('');
+    mistakes.innerHTML = ref.common_mistakes.map(m => `<li>${m}</li>`).join('');
+
+    if (ref.videoId) {
+      video.src = getVideoEmbedUrl(ref.videoId, ref.videoPlatform);
+      video.style.display = 'block';
+      placeholder.style.display = 'none';
+    } else {
+      video.style.display = 'none';
+      placeholder.style.display = 'flex';
+    }
+  } else {
+    title.textContent = exerciseName;
+    muscle.textContent = classifyExercise(exerciseName);
+    equipment.textContent = 'Not specified';
+    cues.innerHTML = '<li>No technique cues available for this exercise yet.</li>';
+    mistakes.innerHTML = '';
+    video.style.display = 'none';
+    placeholder.style.display = 'flex';
+  }
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeExerciseModal() {
+  const modal = document.getElementById('exercise-modal');
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  // Stop video playback by clearing src
+  document.getElementById('exercise-modal-video').src = '';
+}
+
+// Close on backdrop click
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('exercise-modal-backdrop')) closeExerciseModal();
+});
+
+// Close on X button
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('exercise-modal-close')) closeExerciseModal();
+});
+
+// Close on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeExerciseModal();
+});
+
+// Delegated click handler for all exercise links
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('.exercise-link[data-exercise-ref]');
+  if (link) {
+    e.preventDefault();
+    e.stopPropagation();
+    openExerciseModal(link.dataset.exerciseRef);
+  }
+});
+
+// ============================================================
+// COLLAPSIBLE LOG FORM
+// ============================================================
+document.getElementById('log-toggle').addEventListener('click', () => {
+  const wrapper = document.getElementById('log-form-wrapper');
+  const icon = document.getElementById('log-toggle-icon');
+  wrapper.classList.toggle('open');
+  icon.classList.toggle('open');
+});
+
+// ============================================================
 // LOG WORKOUT FORM
 // ============================================================
 function initLogForm() {
@@ -898,7 +1635,7 @@ function initLogForm() {
       const row = document.createElement('div');
       row.className = 'log-exercise-row';
       row.innerHTML = `
-        <label>${name}</label>
+        <label><span class="exercise-link" data-exercise-ref="${name}">${name}</span></label>
         <input type="text" data-exercise="${name}"
                placeholder="e.g. 3s of 10r @ 12kgs">
         <button type="button" class="each-side-toggle" title="Append 'each side'">ES</button>
@@ -1033,7 +1770,6 @@ async function main() {
     renderWeightChart();
     renderFrequencyChart();
     renderMuscleChart();
-    renderVolumeChart();
     renderExerciseProgress();
     renderRecommendations();
 
@@ -1091,36 +1827,52 @@ function renderSummary() {
   const uniqueDates = [...new Set(allWorkouts.map(w => w.date.toDateString()))];
   const exercises = [...new Set(allWorkouts.map(w => w.exercise))];
 
-  // Total volume
-  const totalVolume = allWorkouts.reduce((sum, w) => sum + w.sets * w.reps * w.weight, 0);
-
   // Latest weight
   const latestWeight = allWeights.length > 0 ? allWeights[allWeights.length - 1].weight : null;
 
+  // Average sessions per week (last 8 weeks)
+  const eightWeeksAgo = new Date(Date.now() - 56 * 86400000);
+  const recentSessionDates = new Set(
+    allWorkouts.filter(w => w.date >= eightWeeksAgo).map(w => w.date.toDateString())
+  );
+  const avgPerWeek = (recentSessionDates.size / 8).toFixed(1);
+
   el.innerHTML = `
     <div class="summary-item">
-      <div class="value">${uniqueDates.length}</div>
+      <div class="value" data-countup="${uniqueDates.length}">0</div>
       <div class="label">Workouts</div>
     </div>
     <div class="summary-item">
-      <div class="value">${exercises.length}</div>
+      <div class="value" data-countup="${exercises.length}">0</div>
       <div class="label">Exercises</div>
     </div>
     <div class="summary-item">
-      <div class="value">${formatVolume(totalVolume)}</div>
-      <div class="label">Total Volume (kg)</div>
+      <div class="value" data-countup="${avgPerWeek}" data-decimals="1">0</div>
+      <div class="label">Avg / Week</div>
     </div>
     <div class="summary-item">
-      <div class="value">${latestWeight ? latestWeight + 'kg' : '—'}</div>
+      <div class="value" data-countup="${latestWeight || 0}" data-suffix="kg" data-decimals="1">0</div>
       <div class="label">Body Weight</div>
     </div>
   `;
-}
 
-function formatVolume(v) {
-  if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
-  if (v >= 1000) return (v / 1000).toFixed(0) + 'k';
-  return v.toFixed(0);
+  // Animate count-up
+  el.querySelectorAll('[data-countup]').forEach(el => {
+    const target = parseFloat(el.dataset.countup);
+    if (!target) { el.textContent = '—'; return; }
+    const decimals = parseInt(el.dataset.decimals) || 0;
+    const suffix = el.dataset.suffix || '';
+    const duration = 800;
+    const start = performance.now();
+    function tick(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const current = (target * eased).toFixed(decimals);
+      el.textContent = current + suffix;
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
 }
 
 // ============================================================
@@ -1319,63 +2071,6 @@ function renderMuscleChart() {
 }
 
 // ============================================================
-// VOLUME OVER TIME
-// ============================================================
-function renderVolumeChart() {
-  const ctx = document.getElementById('volumeChart').getContext('2d');
-
-  // Group by date
-  const dateVol = new Map();
-  for (const w of allWorkouts) {
-    const key = w.date.toDateString();
-    dateVol.set(key, (dateVol.get(key) || 0) + w.sets * w.reps * w.weight);
-  }
-
-  const data = [...dateVol.entries()]
-    .map(([key, vol]) => ({ date: new Date(key), vol }))
-    .filter(d => d.vol > 0)
-    .sort((a, b) => a.date - b.date);
-
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: data.map(d => d.date),
-      datasets: [{
-        label: 'Volume (kg)',
-        data: data.map(d => d.vol),
-        borderColor: chartColors.secondary,
-        backgroundColor: chartColors.secondaryBg,
-        fill: true,
-        tension: 0.3,
-        pointRadius: 1.5,
-        pointHoverRadius: 5,
-        borderWidth: 2,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: window.innerWidth < 768 ? 1.4 : 2,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: {
-          type: 'time',
-          time: { unit: 'month', tooltipFormat: 'dd MMM yyyy' },
-          grid: { display: false },
-        },
-        y: {
-          beginAtZero: true,
-          grid: { color: chartColors.grid },
-          ticks: {
-            callback: v => formatVolume(v),
-          }
-        }
-      }
-    }
-  });
-}
-
-// ============================================================
 // EXERCISE PROGRESS
 // ============================================================
 function renderExerciseProgress() {
@@ -1457,7 +2152,7 @@ function renderExerciseProgress() {
       options: {
         responsive: true,
         maintainAspectRatio: true,
-        aspectRatio: window.innerWidth < 768 ? 1.4 : 2.5,
+        aspectRatio: window.innerWidth < 768 ? 1.4 : 1.8,
         plugins: { legend: { display: false } },
         scales: {
           x: {
@@ -1477,6 +2172,10 @@ function renderExerciseProgress() {
 
   if (exercises.length > 0) renderChart(exercises[0]);
   select.addEventListener('change', () => renderChart(select.value));
+
+  document.getElementById('exercise-info-btn').addEventListener('click', () => {
+    openExerciseModal(select.value);
+  });
 }
 
 // ============================================================
@@ -1578,7 +2277,7 @@ function renderRecommendations() {
   if (prs.length > 0) {
     recs.push({
       icon: 'good',
-      text: `Recent PRs: <strong>${prs.slice(0, 3).join(', ')}</strong>${prs.length > 3 ? ` and ${prs.length - 3} more` : ''}!`,
+      text: `Recent PRs: <strong>${prs.slice(0, 3).map(ex => `<span class="exercise-link" data-exercise-ref="${ex}">${ex}</span>`).join(', ')}</strong>${prs.length > 3 ? ` and ${prs.length - 3} more` : ''}!`,
     });
   }
 
