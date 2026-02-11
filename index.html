@@ -183,7 +183,6 @@ header h1 {
   background: var(--bg-card-hover);
   border-color: var(--border-hover);
   box-shadow: var(--shadow), var(--shadow-glow);
-  transform: translateY(-2px);
 }
 
 .card h2 {
@@ -288,7 +287,6 @@ header h1 {
 .summary-item:hover {
   border-color: var(--border-hover);
   background: rgba(108, 159, 255, 0.05);
-  transform: scale(1.03);
 }
 
 .summary-item .value {
@@ -371,23 +369,53 @@ header h1 {
 
 .log-exercise-row {
   display: grid;
-  grid-template-columns: 180px 1fr auto;
+  grid-template-columns: 1fr;
   gap: 8px;
-  align-items: center;
+  padding: 12px 14px;
+  background: rgba(15, 17, 23, 0.35);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.25s ease;
 }
 
-@media (max-width: 767px) {
-  .log-exercise-row {
-    grid-template-columns: 1fr auto;
-  }
-  .log-exercise-row label {
-    grid-column: 1 / -1;
-  }
+.log-exercise-row:hover {
+  border-color: rgba(108, 159, 255, 0.15);
 }
 
 .log-exercise-row label {
   font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary);
+}
+
+.log-exercise-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+@media (max-width: 767px) {
+  .log-exercise-inputs {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .log-exercise-inputs .each-side-toggle {
+    grid-column: 1 / -1;
+  }
+}
+
+.log-exercise-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.log-exercise-field .field-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .log-exercise-row input {
@@ -395,11 +423,12 @@ header h1 {
   color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 9px 10px;
   font-size: 14px;
   width: 100%;
   min-width: 0;
   transition: all 0.25s ease;
+  text-align: center;
 }
 
 .log-exercise-row input:focus {
@@ -408,17 +437,28 @@ header h1 {
   box-shadow: 0 0 0 3px rgba(108, 159, 255, 0.1);
 }
 
+/* Remove number input spinners for cleaner look */
+.log-exercise-row input[type="number"]::-webkit-inner-spin-button,
+.log-exercise-row input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.log-exercise-row input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 .each-side-toggle {
   font-size: 11px;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 9px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   white-space: nowrap;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 600;
+  align-self: end;
 }
 
 .each-side-toggle:hover {
@@ -1636,9 +1676,24 @@ function initLogForm() {
       row.className = 'log-exercise-row';
       row.innerHTML = `
         <label><span class="exercise-link" data-exercise-ref="${name}">${name}</span></label>
-        <input type="text" data-exercise="${name}"
-               placeholder="e.g. 3s of 10r @ 12kgs">
-        <button type="button" class="each-side-toggle" title="Append 'each side'">ES</button>
+        <div class="log-exercise-inputs">
+          <div class="log-exercise-field">
+            <span class="field-label">Sets</span>
+            <input type="number" data-exercise="${name}" data-field="sets"
+                   placeholder="3" min="1" max="20" inputmode="numeric">
+          </div>
+          <div class="log-exercise-field">
+            <span class="field-label">Reps</span>
+            <input type="number" data-exercise="${name}" data-field="reps"
+                   placeholder="10" min="1" max="100" inputmode="numeric">
+          </div>
+          <div class="log-exercise-field">
+            <span class="field-label">Weight (kg)</span>
+            <input type="number" data-exercise="${name}" data-field="weight"
+                   placeholder="12.5" min="0" step="0.5" inputmode="decimal">
+          </div>
+          <button type="button" class="each-side-toggle" title="Each side">ES</button>
+        </div>
       `;
       row.querySelector('.each-side-toggle').addEventListener('click', function() {
         this.classList.toggle('active');
@@ -1675,16 +1730,35 @@ function initLogForm() {
 
     const bodyWeight = document.getElementById('log-bodyweight').value.trim() || null;
 
-    // Collect exercise values
+    // Collect exercise values from structured inputs
     const exercises = [];
-    for (const input of exercisesDiv.querySelectorAll('input[data-exercise]')) {
-      let value = input.value.trim();
-      if (!value) continue;
-      const toggle = input.closest('.log-exercise-row').querySelector('.each-side-toggle');
+    const exerciseRows = exercisesDiv.querySelectorAll('.log-exercise-row');
+    for (const row of exerciseRows) {
+      const setsInput = row.querySelector('input[data-field="sets"]');
+      const repsInput = row.querySelector('input[data-field="reps"]');
+      const weightInput = row.querySelector('input[data-field="weight"]');
+      const sets = setsInput.value.trim();
+      const reps = repsInput.value.trim();
+      const weight = weightInput.value.trim();
+      // Skip if all empty
+      if (!sets && !reps && !weight) continue;
+      const name = setsInput.dataset.exercise;
+      // Build the notation string: "3s of 10r @ 12.5kgs"
+      let value = '';
+      if (sets && reps && weight) {
+        value = `${sets}s of ${reps}r @ ${weight}kgs`;
+      } else if (sets && reps) {
+        value = `${sets}s of ${reps}r`;
+      } else if (reps && weight) {
+        value = `1s of ${reps}r @ ${weight}kgs`;
+      } else if (sets) {
+        value = `${sets}s`;
+      }
+      const toggle = row.querySelector('.each-side-toggle');
       if (toggle && toggle.classList.contains('active')) {
         value += ' each side';
       }
-      exercises.push({ name: input.dataset.exercise, value });
+      if (value) exercises.push({ name, value });
     }
 
     if (exercises.length === 0 && !bodyWeight) {
@@ -1715,7 +1789,7 @@ function initLogForm() {
         statusDiv.textContent = 'Workout logged successfully!';
         statusDiv.className = 'log-status success';
         // Clear inputs but keep type and date
-        exercisesDiv.querySelectorAll('input').forEach(i => i.value = '');
+        exercisesDiv.querySelectorAll('input[type="number"]').forEach(i => i.value = '');
         document.getElementById('log-bodyweight').value = '';
         exercisesDiv.querySelectorAll('.each-side-toggle').forEach(t => t.classList.remove('active'));
       } else {
