@@ -435,83 +435,37 @@ header h1 {
   box-shadow: 0 0 12px rgba(108,159,255,0.15);
 }
 
+.log-submit-row {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
 .log-btn {
   background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
   color: white;
   border: none;
-  border-radius: 10px;
-  padding: 12px 36px;
-  font-size: 14px;
+  border-radius: 12px;
+  padding: 16px 36px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 44px;
-  box-shadow: 0 4px 15px rgba(108, 159, 255, 0.25);
+  min-height: 52px;
+  width: 100%;
   letter-spacing: 0.3px;
 }
 
-.log-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(108, 159, 255, 0.35);
-}
-
-.log-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(108, 159, 255, 0.2);
-}
-
-.log-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.log-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .log-status {
-  margin-top: 12px;
+  margin-top: 10px;
   font-size: 13px;
   min-height: 20px;
+  text-align: center;
 }
 
 .log-status.success { color: var(--green); }
 .log-status.error { color: var(--red); }
-
-/* Collapsible Log Workout */
-.log-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  user-select: none;
-}
-
-.log-toggle-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: rgba(108, 159, 255, 0.1);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: transform 0.3s ease, background 0.2s;
-}
-
-.log-toggle:hover .log-toggle-icon {
-  background: rgba(108, 159, 255, 0.2);
-}
-
-.log-toggle-icon.open {
-  transform: rotate(180deg);
-}
-
-.log-form-wrapper {
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-  opacity: 0;
-}
-
-.log-form-wrapper.open {
-  max-height: 800px;
-  opacity: 1;
-}
 
 /* Smooth scrollbar */
 ::-webkit-scrollbar { width: 6px; }
@@ -738,12 +692,8 @@ select:focus, input:focus, button:focus-visible {
 
   <div class="grid">
     <div class="card full-width" id="log-card">
-      <div class="log-toggle" id="log-toggle">
-        <h2 style="margin-bottom:0">Log Workout</h2>
-        <div class="log-toggle-icon" id="log-toggle-icon">&#9660;</div>
-      </div>
-      <div class="log-form-wrapper" id="log-form-wrapper">
-      <form id="log-form" style="padding-top:16px">
+      <h2>Log Workout</h2>
+      <form id="log-form">
         <div class="log-form-row">
           <div class="log-field">
             <label for="log-type">Workout Type</label>
@@ -759,10 +709,11 @@ select:focus, input:focus, button:focus-visible {
           </div>
         </div>
         <div id="log-exercises" class="log-exercises"></div>
-        <button type="submit" id="log-submit" class="log-btn">Log Workout</button>
-        <div id="log-status" class="log-status"></div>
+        <div class="log-submit-row">
+          <button type="submit" id="log-submit" class="log-btn">Log Workout</button>
+          <div id="log-status" class="log-status"></div>
+        </div>
       </form>
-      </div>
     </div>
 
     <div class="card full-width" id="summary-card">
@@ -1590,16 +1541,6 @@ document.addEventListener('click', (e) => {
     e.stopPropagation();
     openExerciseModal(link.dataset.exerciseRef);
   }
-});
-
-// ============================================================
-// COLLAPSIBLE LOG FORM
-// ============================================================
-document.getElementById('log-toggle').addEventListener('click', () => {
-  const wrapper = document.getElementById('log-form-wrapper');
-  const icon = document.getElementById('log-toggle-icon');
-  wrapper.classList.toggle('open');
-  icon.classList.toggle('open');
 });
 
 // ============================================================
